@@ -85,20 +85,27 @@ class Pipe:
 
 
 class FlappyBirdGame:
-    def __init__(self, pipe_distance=300, pipe_gap=200):
+    def __init__(self, pipe_distance=300, pipe_gap=200, speed_increase_rate=0.0):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Flappy Bird - Q-Learning")
         self.clock = pygame.time.Clock()
         self.pipe_distance = pipe_distance  # Distance between pipes
         self.pipe_gap = pipe_gap  # Height of gap in pipes
+        self.speed_increase_rate = (
+            speed_increase_rate  # Speed increase per second (0 = no increase)
+        )
+        self.base_speed = 3  # Starting pipe speed
         self.reset()
 
     def reset(self):
         """Reset the game to initial state"""
         self.bird = Bird()
         self.pipes = [Pipe(WIDTH + 200, self.pipe_gap)]
+        self.pipes[0].speed = self.base_speed
         self.score = 0
         self.game_over = False
+        self.current_speed = self.base_speed
+        self.frames_elapsed = 0  # Track time
         return self.get_state()
 
     def get_state(self):
@@ -142,8 +149,16 @@ class FlappyBirdGame:
         # Update bird
         self.bird.update()
 
+        # Increase frame counter and update speed based on time
+        self.frames_elapsed += 1
+        seconds_elapsed = self.frames_elapsed / FPS
+        self.current_speed = self.base_speed + (
+            seconds_elapsed * self.speed_increase_rate
+        )
+
         # Update pipes
         for pipe in self.pipes:
+            pipe.speed = self.current_speed
             pipe.update()
 
             # Check collision
@@ -161,7 +176,9 @@ class FlappyBirdGame:
 
         # Add new pipes
         if len(self.pipes) == 0 or self.pipes[-1].x < WIDTH - self.pipe_distance:
-            self.pipes.append(Pipe(WIDTH, self.pipe_gap))
+            new_pipe = Pipe(WIDTH, self.pipe_gap)
+            new_pipe.speed = self.current_speed
+            self.pipes.append(new_pipe)
 
         # Check boundaries
         if self.bird.y > HEIGHT or self.bird.y < 0:
@@ -235,10 +252,13 @@ if __name__ == "__main__":
     # Create game with custom settings
     # pipe_distance: horizontal distance between pipes (default 300)
     # pipe_gap: vertical gap height in pipes (default 200)
-    game = FlappyBirdGame(pipe_distance=300, pipe_gap=200)
+    # speed_increase_rate: speed increase per second (default 0.0 = no increase)
+    #   Examples: 0.1 = gradual increase, 0.5 = faster increase, 0.0 = constant speed
+    game = FlappyBirdGame(pipe_distance=300, pipe_gap=200, speed_increase_rate=0)
 
     # Play manually with spacebar
     print("Press SPACE to jump. Close window to quit.")
+    print("Speed will gradually increase over time!")
     game.play_human()
 
     # For Q-learning, you would use something like:
